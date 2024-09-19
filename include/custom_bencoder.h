@@ -40,8 +40,6 @@ namespace bencoding
         virtual void decode(const std::string &in, std::string::const_iterator &start) = 0;
     };
 
-    std::unique_ptr<bencode_base> make_value(const std::string &in, std::string::const_iterator &start);
-
     class bencode_integer : public bencode_base
     {
     public:
@@ -67,8 +65,7 @@ namespace bencoding
         }
         void decode(const std::string &in, std::string::const_iterator &start) override
         {
-            // Assuming *start == 'i'
-            start++;
+            start++; // Assuming *start == 'i'
             value_type value = 0;
             bool neg = false;
             if (*start == '-')
@@ -128,8 +125,7 @@ namespace bencoding
         }
         void decode(const std::string &in, std::string::const_iterator &start) override
         {
-            // Assuming it starts with length
-            size_t len = 0;
+            size_t len = 0; // Assuming it starts with length
             while (start != in.end() && *start != delimiter_token)
                 len = len * 10 + (*start - '0'), start++;
 
@@ -141,6 +137,8 @@ namespace bencoding
     private:
         string_type str_;
     };
+
+    std::unique_ptr<bencode_base> make_value(const std::string &in, std::string::const_iterator &start);
 
     template <typename T>
     concept bencodeDerived = std::is_base_of<bencode_base, T>::value;
@@ -199,10 +197,10 @@ namespace bencoding
         void decode(const std::string &in, std::string::const_iterator &start) override
         {
             list_.clear();
-            start++; // assuming *start = 'l'
+            start++; // assuming *start == 'l'
             while (start != in.end() && *start != end_token)
                 list_.push_back(make_value(in, start));
-            start++; // assuming *start = 'e'
+            start++; // assuming *start == 'e'
         }
 
     private:
@@ -211,13 +209,54 @@ namespace bencoding
 
     class bencode_dict : public bencode_base
     {
+    private:
+        // custom comparator
+        template <typename T_>
+        struct lexicographical_compare
+        {
+            bool operator()(const T_ &lhs, const T_ &rhs) const
+            {
+                return std::lexicographical_compare(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
+            }
+        };
+
     public:
         using key_type = bencode_string;
-        using value_ptr_type = std::unique_ptr<bencode_base>;
-        using value_type = std::pair<key_type, value_ptr_type>;
-        using container_type = std::map<key_type, value_ptr_type>;
+        using mapped_type = std::unique_ptr<bencode_base>;
+        using value_type = std::pair<const key_type, mapped_type>;
+        using comparator_type = lexicographical_compare<key_type>;
+        using container_type = std::map<key_type, mapped_type, comparator_type>;
+        using iterator = container_type::iterator;
+        using const_iterator = container_type::const_iterator;
 
         bencode_dict() = default;
+
+        iterator begin() { return dict_.begin(); }
+        const_iterator begin() const { return dict_.begin(); }
+        const_iterator cbegin() const { return dict_.cbegin(); }
+        iterator end() { return dict_.end(); }
+        const_iterator end() const { return dict_.end(); }
+        const_iterator cend() const { return dict_.cend(); }
+
+        std::size_t size() const { return dict_.size(); }
+        mapped_type &operator[](const key_type &index) { return dict_[index]; }
+        std::size_t erase(const key_type &key) { return dict_.erase(key); }
+        iterator erase(iterator pos) { return dict_.erase(pos); }
+        iterator find(const key_type &key) { return dict_.find(key); }
+
+        std::pair<iterator, bool> insert(const key_type &key, mapped_type value)
+        {
+            return dict_.emplace(key, std::move(value));
+        }
+        template <bencodeDerived T, typename... Args>
+        std::pair<iterator, bool> insert_or_assign(const key_type &key, Args &&...args)
+        {
+            mapped_type value_ptr = std::make_unique<T>(std::forward<Args>(args)...);
+            return dict_.insert_or_assign(key, std::move(value_ptr));
+        }
+        // Rejected Idea :
+        // overloading [] operator for assigning derived object
+        // to later construct unique_ptr. (since too messy and unintuitive)
 
         std::string encode() const override
         {
@@ -226,13 +265,14 @@ namespace bencoding
             {
                 if (ptr_)
                 {
-                    key_.encode();
-                    ptr_->encode();
+                    enc_str += key_.encode();
+                    enc_str += ptr_->encode();
                 }
             }
             enc_str += end_token;
             return enc_str;
         }
+
         void encode_n_dump(std::ostream &out) const override
         {
             out << dict_token;
@@ -246,17 +286,18 @@ namespace bencoding
             }
             out << end_token;
         }
+
         void decode(const std::string &in, std::string::const_iterator &start) override
         {
-            // start++; // assuming *start = 'd'
-            // while (start != in.end() && *start != end_token)
-            // {
-            //     key_type key_;
-            //     key_.decode(in, start);
-            //     start++; // assuming *start = ':'
-            //     dict_[key_] = make_value<IntT>(in, start);
-            // }
-            // start++; // assuming *start = 'e'
+            dict_.clear();
+            start++; // assuming *start = 'd'
+            while (start != in.end() && *start != end_token)
+            {
+                key_type key_;
+                key_.decode(in, start);
+                dict_[key_] = make_value(in, start);
+            }
+            start++; // assuming *start = 'e'
         }
 
     private:
