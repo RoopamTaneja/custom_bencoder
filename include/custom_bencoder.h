@@ -16,6 +16,7 @@ namespace bencoding
         std::string str;
         std::string::const_iterator citer;
         string_subs(std::string input) : str{input}, citer{str.begin()} {}
+        void refresh() { citer = str.begin(); }
     };
 
     class bencode_base
