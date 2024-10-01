@@ -39,6 +39,7 @@ namespace bencoding
         virtual std::string encode() const = 0;
         virtual void encode_n_dump(std::ostream &out) const = 0;
         virtual void decode(const std::string &in, std::string::const_iterator &start) = 0;
+        virtual std::string get_as_str() const = 0;
     };
 
     class bencode_integer : public bencode_base
@@ -78,6 +79,10 @@ namespace bencoding
             integer_value_ = neg ? -value : value;
             if (start != in.end())
                 start++; // assuming it ends with 'e'
+        }
+        std::string get_as_str() const override
+        {
+            return std::to_string(integer_value_);
         }
 
     private:
@@ -133,6 +138,10 @@ namespace bencoding
             start++;
             str_ = std::string(start, start + len);
             start += len;
+        }
+        std::string get_as_str() const override
+        {
+            return this->get();
         }
 
     private:
@@ -202,6 +211,11 @@ namespace bencoding
             while (start != in.end() && *start != end_token)
                 list_.push_back(make_value(in, start));
             start++; // assuming *start == 'e'
+        }
+
+        std::string get_as_str() const override
+        {
+            return this->encode();
         }
 
     private:
@@ -299,6 +313,11 @@ namespace bencoding
                 dict_[key_] = make_value(in, start);
             }
             start++; // assuming *start = 'e'
+        }
+
+        std::string get_as_str() const override
+        {
+            return this->encode();
         }
 
     private:
