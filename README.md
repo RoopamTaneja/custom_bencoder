@@ -4,7 +4,7 @@ A small, single-header C++ serialization library for [bencoded](https://en.wikip
 
 The library supports serializing and deserializing bencoded data with a simple API. It utilizes smart pointers, STL containers, templates, and concepts for efficient memory management and type safety.
 
-This was written to support [Project Name]([repo_link]) done as a group project for Computer Networks course.
+**This was written to support [OurTorrent](https://github.com/Project-Group-Computer-Networks/OurTorrent) done as a group project for Computer Networks course.**
 
 It follows the specifications in the [standard](http://bittorrent.org/beps/bep_0003.html).
 
@@ -34,6 +34,7 @@ Four types can be created : `bencode_integer`, `bencode_string`, `bencode_list`,
 - `encode()` : Returns a string of bencoded data from stored value.
 - `encode_n_dump(std::ostream)` : Outputs the bencoded data on the passed output stream
 - `decode(std::string, std::string::const_iterator)` : Deserializes bencoded string (whose beginning is pointed to by the const_iterator) and extracts the integer data.
+- `get_as_str()` : Returns the stored integer value as a string.
 
 `struct bencoding::string_subs` can be used for conveniently passing a string and its beginning iterator to the methods. 
 
@@ -69,6 +70,7 @@ int main()
 - `encode()` : Returns a string of bencoded data from stored value.
 - `encode_n_dump(std::ostream)` : Outputs the bencoded data on the passed output stream.
 - `decode(std::string, std::string::const_iterator)` : Deserializes bencoded string (whose beginning is pointed to by the const_iterator) and extracts the string data.
+- `get_as_str()` : Returns the stored string.
 
 **Example:**
 
@@ -108,6 +110,7 @@ Note : bencode_list and bencode_dict need to be passed as rvalues (`std::move`) 
 - `encode()` : Returns a string of bencoded data from stored list of values.
 - `encode_n_dump(std::ostream)` : Outputs the bencoded data on the passed output stream.
 - `decode(std::string, std::string::const_iterator)` : Deserializes bencoded string (whose beginning is pointed to by the const_iterator) and extracts the data into the list. Any prior data is overwritten.
+- `get_as_str()` : Returns the stored list encoded as a string.
 
 **Examples:**
 
@@ -195,6 +198,7 @@ Note : bencode_list and bencode_dict need to be passed as rvalues (`std::move`) 
 - `encode()` : Returns a string of bencoded data from stored dict of keys and values.
 - `encode_n_dump(std::ostream)` : Outputs the bencoded data on the passed output stream.
 - `decode(std::string, std::string::const_iterator)` : Deserializes bencoded string (whose beginning is pointed to by the const_iterator) and extracts the data into the dict. Any prior data is overwritten.
+- `get_as_str()` : Returns the stored dict encoded as a string.
 
 **Examples:**
 
